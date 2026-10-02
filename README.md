@@ -2,6 +2,21 @@
 
 This project designs and trains a neural network from scratch for binary classification of breast cancer tumors (benign vs malignant) based on the cell nucleus characteristics from the Wisconsin Breast Cancer dataset.
 
+The network is implemented twice:
+- **NumPy version** (`numpy-ver/`): built from scratch, with forward propagation, backpropagation and gradient descent all written by hand.
+- **PyTorch version** (`pytorch-ver/`): the same network rebuilt in PyTorch, using `nn.Linear` layers, autograd for backpropagation and `torch.optim.SGD` for weight updates.
+
+Both versions share the same data split and preprocessing (`utils/`), so their results can be compared directly.
+
+## Project Structure
+
+```
+numpy-ver/      from-scratch implementation (layers, activations, train, predict)
+pytorch-ver/    PyTorch implementation (train, predict)
+utils/          shared code: dataset splitting, preprocessing, plotting
+datasets/       data.csv (Wisconsin Breast Cancer dataset) and the generated splits
+```
+
 ## Concepts
 
 ### What is a Multilayer Perceptron
@@ -155,7 +170,15 @@ Prediction process:
 - **ACTIVATION_FT**: Activation function for hidden layers
 - **WEIGHTS_INITIALISER**: Method for initializing weights
 
+
 ## Results
+
+Accuracy on the held-out 30% split (`LAYERS = 24 24`, sigmoid, `random` init, 300 epochs, learning rate 0.0008, batch size 1, seed 42):
+
+| Version | Accuracy |
+|---|---|
+| NumPy (from scratch) | 94.2% |
+| PyTorch | 94.7% |
 
 Below shows examples of results obtained during training
 
