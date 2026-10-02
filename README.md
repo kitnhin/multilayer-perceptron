@@ -118,7 +118,11 @@ The gradient tells us which direction reduces the cost, so we subtract it to mov
 
 ### 1. Split the Dataset
 
-Separate the data into training and validation sets based on `TRAIN_PERCENTAGE` in Makefile. This randomizes the data and splits it according to the specified percentage. If `SEED` is set to a positive value, the split is reproducible.
+Separate the data into training, validation and test sets based on `TRAIN_PERCENTAGE` and `VALIDATION_PERCENTAGE` in Makefile. If `SEED` is set to a positive value, the split is reproducible.
+
+- **Training set**: used to learn the weights
+- **Validation set**: used to track loss and accuracy during training
+- **Test set**: only used by predict, to measure accuracy on unseen data
 
 ### 2. Train the Model
 
@@ -161,7 +165,8 @@ Prediction process:
 ## Configuration Settings in Makefile
 
 **Configuration Details**:
-- **TRAIN_PERCENTAGE**: Proportion of data used for training (0.7 = 70% train, 30% validation)
+- **TRAIN_PERCENTAGE**: Proportion of data used for training (0.7 = 70%)
+- **VALIDATION_PERCENTAGE**: Proportion of data used for validation (0.15 = 15%)
 - **SEED**: Random seed for reproducibility (-1 for random split)
 - **EPOCHS**: Number of complete passes through training data
 - **LAYERS**: List of neurons per hidden layer
@@ -173,12 +178,12 @@ Prediction process:
 
 ## Results
 
-Accuracy on the held-out 30% split (`LAYERS = 24 24`, sigmoid, `random` init, 300 epochs, learning rate 0.0008, batch size 1, seed 42):
+Accuracy on the held-out 15% test set, with `LAYERS = 24 24`, sigmoid, `random` init, 300 epochs, learning rate 0.0008, batch size 1, seed 42:
 
 | Version | Accuracy |
 |---|---|
 | NumPy (from scratch) | 94.2% |
-| PyTorch | 94.7% |
+| PyTorch | 94.2% |
 
 Below shows examples of results obtained during training
 

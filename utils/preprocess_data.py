@@ -14,7 +14,7 @@ def train_parse_args():
 	#python argument parser very nice(type defaults to string)
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--trainFile', default="datasets/dataset_train.csv")
-	parser.add_argument('--validationFile', default="datasets/dataset_predict.csv")
+	parser.add_argument('--validationFile', default="datasets/dataset_validation.csv")
 	parser.add_argument('--outputFile', default="params.json")
 	parser.add_argument('--layer', type=int, nargs='*', default=[24, 24, 24])
 	parser.add_argument('--epochs', type=int, default=100)
@@ -30,7 +30,7 @@ def predict_parse_args():
 
 	#python argument parser very nice(type defaults to string)
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--predictFile', default="datasets/dataset_predict.csv")
+	parser.add_argument('--testFile', default="datasets/dataset_test.csv")
 	parser.add_argument('--paramsFile', default="params.json")
 	parser.add_argument('--outputFile', default="predictions_output.txt")
 	parser.add_argument('--activationFt', default="sigmoid")

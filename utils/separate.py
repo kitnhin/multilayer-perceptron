@@ -13,8 +13,10 @@ def parse_args():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--givenFile', default="datasets/data-2.csv")
 	parser.add_argument('--trainFile', default="datasets/dataset_train.csv")
-	parser.add_argument('--predictFile', default="datasets/dataset_predict.csv")
+	parser.add_argument('--validationFile', default="datasets/dataset_validation.csv")
+	parser.add_argument('--testFile', default="datasets/dataset_test.csv")
 	parser.add_argument('--trainPercentage', type=float, default=0.7)
+	parser.add_argument('--validationPercentage', type=float, default=0.15) #predict file gets the rest
 	parser.add_argument('--seed', type=int, default=-1)
 
 	return parser.parse_args()
@@ -46,26 +48,38 @@ if __name__ == "__main__":
 		args = parse_args()
 		given_file = args.givenFile
 		train_percentage = args.trainPercentage
+		validation_percentage = args.validationPercentage
 		train_file = args.trainFile
-		predict_file = args.predictFile
+		validation_file = args.validationFile
+		test_file = args.testFile
 		seed = args.seed
+
+		if train_percentage + validation_percentage >= 1:
+			raise ValueError("trainPercentage + validationPercentage must be less than 1, need leftover lines for test file")
 
 		#read file
 		given_file_contents = readfile(given_file)
-		
+
 		#calculate lines
 		lines = given_file_contents.strip().split("\n")
 		number_of_lines = len(lines)
 		train_lines = int(number_of_lines * train_percentage)
+		validation_lines = int(number_of_lines * validation_percentage)
+
+		#calculate where split ends
+		train_end = train_lines
+		validation_end = train_lines + validation_lines
 
 		#processings
 		lines = reorder_lines(lines, seed)
 
 		#write
-		write_data(lines[:train_lines], train_file)
-		write_data(lines[train_lines:], predict_file)
-		print(f"Training data saved: {train_file}")
-		print(f"Prediction data saved: {predict_file}")
+		write_data(lines[:train_end], train_file)
+		write_data(lines[train_end:validation_end], validation_file)
+		write_data(lines[validation_end:], test_file) #test file gets the rest
+		print(f"Training data saved: {train_file} ({train_end} lines)")
+		print(f"Validation data saved: {validation_file} ({validation_end - train_end} lines)")
+		print(f"Test data saved: {test_file} ({number_of_lines - validation_end} lines)")
 		
 
 	except Exception as e:

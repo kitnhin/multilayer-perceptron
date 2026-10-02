@@ -60,7 +60,7 @@ if __name__ == "__main__":
 	try:
 		#parsing args
 		args = pd.predict_parse_args()
-		predict_file = args.predictFile
+		test_file = args.testFile
 		params_file = args.paramsFile
 		output_file = args.outputFile
 
@@ -68,7 +68,7 @@ if __name__ == "__main__":
 		weights, means, stds, layers, activation = load_model(params_file)
 		
 		#extract and process training data
-		given_file_contents = pd.readfile(predict_file)
+		given_file_contents = pd.readfile(test_file)
 		actual_results, data = pd.extract_data(given_file_contents)
 		pd.normalise_validation_data(data, means, stds)
 		data = torch.tensor(data, dtype=torch.float32) 
