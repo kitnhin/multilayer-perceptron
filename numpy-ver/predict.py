@@ -2,7 +2,7 @@ import argparse
 import json
 import numpy as np
 import statistics as st
-import preprocess_data as pd
+import utils.preprocess_data as pd
 import matplotlib.pyplot as plot
 
 from dense import Dense
@@ -49,13 +49,12 @@ def binary_crossentropy_error(y_pred, y_true):
 	return loss
 
 
-def predict(network, data, results):
+
+def predict(network, data):
 	predicts_arr = []
-	error_arr = []
 	
 	for i in range(len(data)):
 		x = data[i]
-		correct_result = np.array([[1],[0]]) if results[i] == "B" else np.array([[0],[1]])
 		
 		#forward pass only
 		output = x.reshape(-1, 1)
@@ -66,11 +65,8 @@ def predict(network, data, results):
 		higher_idx = np.argmax(output) #gets the index wif the higher number
 		predicted_class = "B" if higher_idx == 0 else "M"
 		predicts_arr.append(predicted_class)
-
-		error = binary_crossentropy_error(output, correct_result)
-		error_arr.append(error)
 	
-	return np.mean(error_arr), predicts_arr
+	return predicts_arr
 
 def calc_accuracy(predicts, actual):
 	correct = 0
@@ -119,12 +115,11 @@ if __name__ == "__main__":
 		#process
 		pd.normalise_validation_data(data, means, stds)
 		network = reconstruct_network(weights, biases, activation)
-		avg_error, predicts = predict(network, data, actual_results)
+		predicts = predict(network, data)
 		accuracy = calc_accuracy(predicts, actual_results)
 		
 		#output
 		print("Prediction stats: ")
-		print(f"Average error: {avg_error:.4f}")
 		print(f"Final accuracy: {accuracy:.4f}")
 		write_predictions(predicts, actual_results, output_file)
 
