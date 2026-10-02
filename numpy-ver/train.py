@@ -2,11 +2,11 @@ import argparse
 import json
 import numpy as np
 import statistics as st
-import preprocess_data as pd
-import matplotlib.pyplot as plot
+import utils.preprocess_data as pd
 
 from dense import Dense
 from activation import Activation
+from utils.plot import plot_loss, plot_acc
 
 def construct_network(data, layers, activation_ft, weights_init, seed):
 	#construct network
@@ -30,7 +30,7 @@ def construct_network(data, layers, activation_ft, weights_init, seed):
 		prev_out_size = output_size
 		print (f"hidden layer {i + 1} (neurons: {output_size}) -> ", end="")
 	
-	#actual processing
+	#output layer
 	input_size = prev_out_size
 	output_size = 2 #follow picture in pdf, they used 2 neurons in last layer
 	network.append(Dense(input_size, output_size, weights_init, seed))
@@ -138,26 +138,6 @@ def train(network, train_data, train_results, validation_data, validation_result
 	return loss_arr, val_loss_arr, train_acc_arr, val_acc_arr
 
 
-def plot_loss(train_loss_arr, val_loss_arr):
-	epochs = range(1, len(train_loss_arr) + 1)
-	plot.plot(epochs, train_loss_arr, label='Training Loss', color='blue')
-	plot.plot(epochs, val_loss_arr, label='Validation Loss', color='orange')
-	plot.xlabel('Epoch')
-	plot.ylabel('Loss')
-	plot.title('Training and Validation Loss')
-	plot.legend()
-	plot.show()
-
-def plot_acc(train_acc_arr, val_acc_arr):
-	epochs = range(1, len(train_acc_arr) + 1)
-	plot.plot(epochs, train_acc_arr, label='Training Accuracy', color='blue')
-	plot.plot(epochs, val_acc_arr, label='Validation Accuracy', color='orange')
-	plot.xlabel('Epoch')
-	plot.ylabel('Accuracy')
-	plot.title('Training and Validation Accuracy')
-	plot.legend()
-	plot.show()
-
 def save_model(network, means, stds, filename):
 	weights = []
 	biases = []
@@ -202,10 +182,10 @@ if __name__ == "__main__":
 		seed = args.seed
 
 		#extract and process training data
-		given_file_contents = pd.readfile(train_file)
-		actual_results, data = pd.extract_data(given_file_contents)
-		data = np.array(data)  #convert list to numpy array
-		training_means, training_stds = pd.normalise_data(data)
+		training_file_contents = pd.readfile(train_file)
+		training_actual_results, training_data = pd.extract_data(training_file_contents)
+		training_data = np.array(training_data)  #convert list to numpy array
+		training_means, training_stds = pd.normalise_data(training_data)
 
 		#extract and process validation data
 		validation_file_contents = pd.readfile(validation_file)
@@ -214,8 +194,8 @@ if __name__ == "__main__":
 		pd.normalise_validation_data(validation_data, training_means, training_stds) #use training means and stds to ensure acc since our training normalising uses these
 
 		#training
-		network = construct_network(data, layers, activation_ft, weights_init, seed)
-		loss_arr, val_loss_arr, train_acc_arr, val_acc_arr = train(network, data, actual_results, validation_data, validation_actual_results, epochs, learning_rate, batch_size)
+		network = construct_network(training_data, layers, activation_ft, weights_init, seed)
+		loss_arr, val_loss_arr, train_acc_arr, val_acc_arr = train(network, training_data, training_actual_results, validation_data, validation_actual_results, epochs, learning_rate, batch_size)
 		plot_loss(loss_arr, val_loss_arr)
 		plot_acc(train_acc_arr, val_acc_arr)
 

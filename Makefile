@@ -2,10 +2,18 @@
 TRAIN_DATASET = datasets/dataset_train.csv
 PREDICT_DATASET = datasets/dataset_predict.csv
 VALIDATION_DATASET = datasets/dataset_predict.csv
-GIVEN_DATASET = datasets/data-2.csv
+GIVEN_DATASET = datasets/data.csv
 
-PARAMS_OUTPUT = params.json
-PREDICT_OUTPUT = predictions_output.txt
+#source folders
+NUMPY_DIR = numpy-ver
+PYTORCH_DIR = pytorch-ver
+UTILS_DIR = utils
+
+#output files, each version saves inside its own folder
+NP_PARAMS_OUTPUT = ${NUMPY_DIR}/params.json
+NP_PREDICT_OUTPUT = ${NUMPY_DIR}/predictions_output.txt
+PT_PARAMS_OUTPUT = ${PYTORCH_DIR}/model.pt
+PT_PREDICT_OUTPUT = ${PYTORCH_DIR}/predictions_output.txt
 
 #separation settings
 TRAIN_PERCENTAGE = 0.7
@@ -21,19 +29,26 @@ WEIGHTS_INITIALISER = random #heUniform or random
 
 
 sep:
-	@python3 separate.py --givenFile ${GIVEN_DATASET} --trainFile ${TRAIN_DATASET} --predictFile ${PREDICT_DATASET} --trainPercentage ${TRAIN_PERCENTAGE} --seed ${SEED}
+	@PYTHONPATH=. uv run python ${UTILS_DIR}/separate.py --givenFile ${GIVEN_DATASET} --trainFile ${TRAIN_DATASET} --predictFile ${PREDICT_DATASET} --trainPercentage ${TRAIN_PERCENTAGE} --seed ${SEED}
 
-train:
-	@python3 train.py --trainFile ${TRAIN_DATASET} --outputFile ${PARAMS_OUTPUT} --layer ${LAYERS} --epochs ${EPOCHS} --learningRate ${LEARNING_RATE} --validationFile ${VALIDATION_DATASET} \
+np_train:
+	@PYTHONPATH=. uv run python ${NUMPY_DIR}/train.py --trainFile ${TRAIN_DATASET} --outputFile ${NP_PARAMS_OUTPUT} --layer ${LAYERS} --epochs ${EPOCHS} --learningRate ${LEARNING_RATE} --validationFile ${VALIDATION_DATASET} \
 	--batchSize ${BATCH_SIZE} --activationFt ${ACTIVATION_FT} --weightsInitialiser ${WEIGHTS_INITIALISER} --seed ${SEED}
 
-predict:
-	@python3 predict.py --paramsFile ${PARAMS_OUTPUT} --predictFile ${PREDICT_DATASET} --outputFile ${PREDICT_OUTPUT}
+np_predict:
+	@PYTHONPATH=. uv run python ${NUMPY_DIR}/predict.py --paramsFile ${NP_PARAMS_OUTPUT} --predictFile ${PREDICT_DATASET} --outputFile ${NP_PREDICT_OUTPUT}
+
+pt_train:
+	@PYTHONPATH=. uv run python ${PYTORCH_DIR}/train.py --trainFile ${TRAIN_DATASET} --outputFile ${PT_PARAMS_OUTPUT} --layer ${LAYERS} --epochs ${EPOCHS} --learningRate ${LEARNING_RATE} --validationFile ${VALIDATION_DATASET} \
+	--batchSize ${BATCH_SIZE} --activationFt ${ACTIVATION_FT} --weightsInitialiser ${WEIGHTS_INITIALISER} --seed ${SEED}
+
+pt_predict:
+	@PYTHONPATH=. uv run python ${PYTORCH_DIR}/predict.py --paramsFile ${PT_PARAMS_OUTPUT} --predictFile ${PREDICT_DATASET} --outputFile ${PT_PREDICT_OUTPUT}
 
 clean:
-	rm datasets/dataset_train.csv datasets/dataset_predict.csv params.json predictions_output.txt
+	rm -f datasets/dataset_train.csv datasets/dataset_predict.csv ${NP_PARAMS_OUTPUT} ${NP_PREDICT_OUTPUT} ${PT_PARAMS_OUTPUT} ${PT_PREDICT_OUTPUT}
 
-all: sep train predict
+all: sep np_train np_predict
 
 
 #nice configurations
@@ -50,3 +65,4 @@ all: sep train predict
 
 #notes
 # relu is more powerful, and can easily cause overfitting, normally used for larger datasets and deeper networks, causes gradients to update more drastically
+# PYTHONPATH=. is to specify the project root dir so modules can be imported correctly

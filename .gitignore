@@ -1,7 +1,9 @@
 venv
+.venv
 __pycache__
 *.pyc
 params.json
 houses.csv
 datasets
 predictions_output.txt
+model.pt
