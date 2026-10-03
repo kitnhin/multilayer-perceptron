@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn # nn for neural network
-import utils.preprocess_data as pd
-from utils.plot import plot_loss, plot_acc
+from shared.other_utils import train_parse_args
+from shared.preprocess_data import load_train_val_data
+from shared.training_utils import create_history, record_epoch, plot_history, create_early_stop_state, early_stop_check
 
 def construct_network(data, layers, activation_ft, weights_init, seed):
 	if seed != -1:
@@ -99,21 +100,17 @@ def save_model(network, means, stds, layers, activation_ft, filename):
 	print(f"Model successfully saved to {filename}")
 
 
-def train(network, train_data, train_results, validation_data, validation_results, epochs, learning_rate, batch_size):
-	#track loss / error after each epoch to plot later
-	train_loss_arr = [] 
-	val_loss_arr = []
-	train_acc_arr = []
-	val_acc_arr = []
+def train(network, train_data, train_results, validation_data, validation_results, epochs, learning_rate, batch_size, patience):
+	history = create_history()
+	early_stop_state = create_early_stop_state()
 
 	loss_ft = nn.CrossEntropyLoss()
 	optimizer = torch.optim.SGD(network.parameters(), lr=learning_rate) #optimizer is used to update weights once the gradients are known (SGD = stochastic gradient descent)
 	# there are more optimizers like Adam, but SGD is used for the numpy ver so just use this for now
 
-	for epoch in range(epochs):
+	for epoch in range(1, epochs + 1): #start from 1 so epoch numbers match what we print
 		error_arr = [] #track error after each iteration
 
-		#use stochastic gradient descend for now cuz its easier
 		for i in range(len(train_data)):
 			x = train_data[i]
 			correct_result = train_results[i]
@@ -134,57 +131,42 @@ def train(network, train_data, train_results, validation_data, validation_result
 				optimizer.step() #update weights
 				optimizer.zero_grad() #reset gradients to 0 for next iteration
 
-		#calc acc and validation loss
+		#calc loss and acc
 		train_loss = sum(error_arr) / len(error_arr)
+		validation_loss = calc_validation_loss(network, validation_data, validation_results, loss_ft)
 		train_acc = calc_accuracy(network, train_data, train_results)
 		val_acc = calc_accuracy(network, validation_data, validation_results)
-		validation_loss = calc_validation_loss(network, validation_data, validation_results, loss_ft)
+		record_epoch(history, epoch, epochs, train_loss, validation_loss, train_acc, val_acc)
 
-		train_loss_arr.append(train_loss)
-		train_acc_arr.append(train_acc)
-		val_loss_arr.append(validation_loss)
-		val_acc_arr.append(val_acc)
-		
-		print(f"{epoch + 1}/{epochs} - loss: {train_loss:.4f} - val_loss: {validation_loss:.4f}")
-	
-	return train_loss_arr, val_loss_arr, train_acc_arr, val_acc_arr
+		if early_stop_check(early_stop_state, network, validation_loss, epoch, patience):
+			print(f"\nEarly stopping at epoch {epoch}, val_loss has not improved for {patience} epochs")
+			break
+
+	#go back to the best network, not the last one
+	if early_stop_state["best_network"] is not None:
+		network = early_stop_state["best_network"]
+		print(f"Restored best weights from epoch {early_stop_state['best_epoch']} (val_loss: {early_stop_state['best_val_loss']:.4f})")
+
+	return network, history
 
 if __name__ == "__main__":
 	try:
 		#parsing args
-		args = pd.train_parse_args()
-		train_file = args.trainFile
-		output_file = args.outputFile
-		layers = args.layer #2d array smth like [24,24]
-		epochs = args.epochs
-		learning_rate = args.learningRate
-		validation_file = args.validationFile
-		activation_ft = args.activationFt
-		batch_size = args.batchSize
-		weights_init = args.weightsInitialiser
-		seed = args.seed
+		args = train_parse_args()
 
-		#extract and process training data
-		training_file_contents = pd.readfile(train_file)
-		training_actual_results, training_data = pd.extract_data(training_file_contents)
-		training_means, training_stds = pd.normalise_data(training_data)
-		training_data = torch.tensor(training_data, dtype=torch.float32) #convert to tensor, pytorch store their weights in float32
+		#load normalised data, then convert to tensors
+		training_data, training_actual_results, validation_data, validation_actual_results, training_means, training_stds = load_train_val_data(args.trainFile, args.validationFile)
+		training_data = torch.tensor(training_data, dtype=torch.float32) #pytorch store their weights in float32
 		training_actual_results = torch.tensor([0 if result == "B" else 1 for result in training_actual_results]) #B = 0, M = 1
-
-		#extract and process validation data
-		validation_file_contents = pd.readfile(validation_file)
-		validation_actual_results, validation_data = pd.extract_data(validation_file_contents)
-		pd.normalise_validation_data(validation_data, training_means, training_stds) #use training means and stds to ensure acc since our training normalising uses these
 		validation_data = torch.tensor(validation_data, dtype=torch.float32)
 		validation_actual_results = torch.tensor([0 if result == "B" else 1 for result in validation_actual_results])
 
 		#training
-		network = construct_network(training_data, layers, activation_ft, weights_init, seed)
-		loss_arr, val_loss_arr, train_acc_arr, val_acc_arr = train(network, training_data, training_actual_results, validation_data, validation_actual_results, epochs, learning_rate, batch_size)
-		plot_loss(loss_arr, val_loss_arr)
-		plot_acc(train_acc_arr, val_acc_arr)
+		network = construct_network(training_data, args.layer, args.activationFt, args.weightsInitialiser, args.seed)
+		network, history = train(network,training_data, training_actual_results, validation_data, validation_actual_results, args.epochs, args.learningRate, args.batchSize, args.patience)
+		plot_history(history)
 
-		save_model(network, training_means, training_stds, layers, activation_ft, output_file)
+		save_model(network, training_means, training_stds, args.layer, args.activationFt, args.outputFile)
 
 
 	except Exception as e:

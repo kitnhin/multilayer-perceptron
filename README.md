@@ -6,14 +6,14 @@ The network is implemented twice:
 - **NumPy version** (`numpy-ver/`): built from scratch, with forward propagation, backpropagation and gradient descent all written by hand.
 - **PyTorch version** (`pytorch-ver/`): the same network rebuilt in PyTorch, using `nn.Linear` layers, autograd for backpropagation and `torch.optim.SGD` for weight updates.
 
-Both versions share the same data split and preprocessing (`utils/`), so their results can be compared directly.
+Both versions share the same data split and preprocessing (`shared/`), so their results can be compared directly.
 
 ## Project Structure
 
 ```
 numpy-ver/      from-scratch implementation (layers, activations, train, predict)
 pytorch-ver/    PyTorch implementation (train, predict)
-utils/          shared code: dataset splitting, preprocessing, plotting
+shared/         shared code: dataset splitting, preprocessing, plotting
 datasets/       data.csv (Wisconsin Breast Cancer dataset) and the generated splits
 ```
 
@@ -149,7 +149,11 @@ Training process:
 	- Propagate gradient backward through layers
 	- Update weights after processing batch using gradient descend
 
-5. **Output parameters and plots**
+5. **Early stopping**
+	- If validation loss has not improved for `PATIENCE` epochs, stop training to prevent overfitting
+	- Restore the weights from the epoch with the lowest validation loss
+
+6. **Output parameters and plots**
    - Display loss and validation loss per epoch
    - Save trained model with weights, biases, normalization parameters
 
@@ -174,16 +178,17 @@ Prediction process:
 - **BATCH_SIZE**: Number of samples before updating weights (1 = SGD, higher = mini-batch)
 - **ACTIVATION_FT**: Activation function for hidden layers
 - **WEIGHTS_INITIALISER**: Method for initializing weights
+- **PATIENCE**: Epochs without validation loss improvement before early stopping (-1 to disable)
 
 
 ## Results
 
-Accuracy on the held-out 15% test set, with `LAYERS = 24 24`, sigmoid, `random` init, 300 epochs, learning rate 0.0008, batch size 1, seed 42:
+Accuracy on the held-out 15% test set, with `LAYERS = 24 24`, sigmoid, `random` init, 300 epochs, learning rate 0.001, batch size 1, seed 42:
 
 | Version | Accuracy |
 |---|---|
 | NumPy (from scratch) | 94.2% |
-| PyTorch | 94.2% |
+| PyTorch | 95.4% |
 
 Below shows examples of results obtained during training
 

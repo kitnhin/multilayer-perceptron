@@ -2,11 +2,12 @@ import argparse
 import json
 import numpy as np
 import statistics as st
-import utils.preprocess_data as pd
+from shared.other_utils import train_parse_args
 
 from dense import Dense
 from activation import Activation
-from utils.plot import plot_loss, plot_acc
+from shared.preprocess_data import load_train_val_data
+from shared.training_utils import create_history, record_epoch, plot_history, create_early_stop_state, early_stop_check
 
 def construct_network(data, layers, activation_ft, weights_init, seed):
 	#construct network
@@ -84,18 +85,14 @@ def binary_crossentropy_error(y_pred, y_true):
 	return loss
 
 
-def train(network, train_data, train_results, validation_data, validation_results, epochs, learning_rate, batch_size):
+def train(network, train_data, train_results, validation_data, validation_results, epochs, learning_rate, batch_size, patience):
 
-	#track loss / error after each epoch to plot later
-	loss_arr = [] 
-	val_loss_arr = []
-	train_acc_arr = []
-	val_acc_arr = []
+	history = create_history()
+	early_stop_state = create_early_stop_state()
 
-	for epoch in range(epochs):
-		error_arr = [] #track error after each iteration
+	for epoch in range(1, epochs + 1):
+		error_arr = []
 
-		#use stochastic gradient descend for now cuz its easier
 		for i in range(len(train_data)):
 			x = train_data[i]
 			correct_result = np.array([[1],[0]]) if train_results[i] == "B" else np.array([[0],[1]]) #python op
@@ -121,21 +118,23 @@ def train(network, train_data, train_results, validation_data, validation_result
 					if isinstance(layer, Dense):
 						layer.update_weights(learning_rate)
 
-		#calc acc
+		#calc loss and acc
+		train_loss = np.mean(error_arr)
+		validation_loss = calc_validation_loss(network, validation_data, validation_results)
 		train_acc = calc_accuracy(network, train_data, train_results)
 		val_acc = calc_accuracy(network, validation_data, validation_results)
-		train_acc_arr.append(train_acc)
-		val_acc_arr.append(val_acc)
+		record_epoch(history, epoch, epochs, train_loss, validation_loss, train_acc, val_acc)
 
-		#calc losses for validation data
-		validation_loss = calc_validation_loss(network, validation_data, validation_results)
-		val_loss_arr.append(validation_loss)
-		
-		loss = np.mean(error_arr)
-		loss_arr.append(loss)
-		print(f"{epoch + 1}/{epochs} - loss: {loss:.4f} - val_loss: {validation_loss:.4f}")
-	
-	return loss_arr, val_loss_arr, train_acc_arr, val_acc_arr
+		if early_stop_check(early_stop_state, network, validation_loss, epoch, patience):
+			print(f"\nEarly stopping at epoch {epoch}, val_loss has not improved for {patience} epochs")
+			break
+
+	#go back to the best network, not the last one
+	if early_stop_state["best_network"] is not None:
+		network = early_stop_state["best_network"]
+		print(f"Restored best weights from epoch {early_stop_state['best_epoch']} (val_loss: {early_stop_state['best_val_loss']:.4f})")
+
+	return network, history
 
 
 def save_model(network, means, stds, filename):
@@ -169,37 +168,19 @@ def save_model(network, means, stds, filename):
 if __name__ == "__main__":
 	try:
 		#parsing args
-		args = pd.train_parse_args()
-		train_file = args.trainFile
-		output_file = args.outputFile
-		layers = args.layer #2d array smth like [24,24]
-		epochs = args.epochs
-		learning_rate = args.learningRate
-		validation_file = args.validationFile
-		activation_ft = args.activationFt
-		batch_size = args.batchSize
-		weights_init = args.weightsInitialiser
-		seed = args.seed
+		args = train_parse_args()
 
-		#extract and process training data
-		training_file_contents = pd.readfile(train_file)
-		training_actual_results, training_data = pd.extract_data(training_file_contents)
-		training_data = np.array(training_data)  #convert list to numpy array
-		training_means, training_stds = pd.normalise_data(training_data)
-
-		#extract and process validation data
-		validation_file_contents = pd.readfile(validation_file)
-		validation_actual_results, validation_data = pd.extract_data(validation_file_contents)
-		validation_data = np.array(validation_data)  #convert list to numpy array
-		pd.normalise_validation_data(validation_data, training_means, training_stds) #use training means and stds to ensure acc since our training normalising uses these
+		#load normalised data, then convert to numpy arrays
+		training_data, training_actual_results, validation_data, validation_actual_results, training_means, training_stds = load_train_val_data(args.trainFile, args.validationFile)
+		training_data = np.array(training_data)
+		validation_data = np.array(validation_data)
 
 		#training
-		network = construct_network(training_data, layers, activation_ft, weights_init, seed)
-		loss_arr, val_loss_arr, train_acc_arr, val_acc_arr = train(network, training_data, training_actual_results, validation_data, validation_actual_results, epochs, learning_rate, batch_size)
-		plot_loss(loss_arr, val_loss_arr)
-		plot_acc(train_acc_arr, val_acc_arr)
+		network = construct_network(training_data, args.layer, args.activationFt, args.weightsInitialiser, args.seed)
+		network, history = train(network,training_data, training_actual_results, validation_data, validation_actual_results, args.epochs, args.learningRate, args.batchSize, args.patience)
+		plot_history(history)
 
-		save_model(network, training_means, training_stds, output_file)
+		save_model(network, training_means, training_stds, args.outputFile)
 
 
 	except Exception as e:
