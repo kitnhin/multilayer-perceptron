@@ -21,6 +21,16 @@ def plot_history(history):
 	plot_loss(history["train_loss"], history["val_loss"])
 	plot_acc(history["train_acc"], history["val_acc"])
 
+#accuracies of the final network, which is the best epoch if early stopping restored it, else the last epoch
+def print_final_accuracy(history, early_stop_state):
+	if early_stop_state["best_network"] is not None:
+		epoch = early_stop_state["best_epoch"]
+	else:
+		epoch = len(history["train_acc"])
+
+	print(f"Final train accuracy: {history['train_acc'][epoch - 1]:.4f}")
+	print(f"Final validation accuracy: {history['val_acc'][epoch - 1]:.4f}")
+
 #early stopping
 def create_early_stop_state():
 	return {

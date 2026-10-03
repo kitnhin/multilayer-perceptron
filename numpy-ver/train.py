@@ -7,7 +7,7 @@ from shared.other_utils import train_parse_args
 from dense import Dense
 from activation import Activation
 from shared.preprocess_data import load_train_val_data
-from shared.training_utils import create_history, record_epoch, plot_history, create_early_stop_state, early_stop_check
+from shared.training_utils import create_history, record_epoch, plot_history, print_final_accuracy, create_early_stop_state, early_stop_check
 
 def construct_network(data, layers, activation_ft, weights_init, seed):
 	#construct network
@@ -134,6 +134,7 @@ def train(network, train_data, train_results, validation_data, validation_result
 		network = early_stop_state["best_network"]
 		print(f"Restored best weights from epoch {early_stop_state['best_epoch']} (val_loss: {early_stop_state['best_val_loss']:.4f})")
 
+	print_final_accuracy(history, early_stop_state)
 	return network, history
 
 

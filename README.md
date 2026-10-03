@@ -183,19 +183,44 @@ Prediction process:
 
 ## Results
 
-Accuracy on the held-out 15% test set, with `LAYERS = 24 24`, sigmoid, `random` init, 300 epochs, learning rate 0.001, batch size 1, seed 42:
+Accuracy on the train, validation and held-out test sets. All runs use seed 42 and batch size 1.
 
-| Version | Accuracy |
-|---|---|
-| NumPy (from scratch) | 94.2% |
-| PyTorch | 95.4% |
+| Data split (train / val / test) | Layers | Activation | Weights init | Epochs | Learning rate | Patience | NumPy (train / val / test) | PyTorch (train / val / test) | Notes |
+|---|---|---|---|---|---|---|---|---|---|
+| 70% / 15% / 15% | 24 24 | sigmoid | random | 300 | 0.001 | 10 | 97.7% / 94.1% / 94.2% | 99.0% / 95.3% / 95.3% | normal result |
+| 70% / 15% / 15% | 5 5 | relu | heUniform | 70 | 0.001 | 10 | 98.2% / 95.3% / 93.0% | 97.7% / 95.3% / 93.0% | normal result |
+| 70% / 15% / 15% | 24 24 | sigmoid | random | 10 | 0.0001 | 10 | 46.0% / 42.4% / 45.3% | 55.3% / 38.8% / 53.5% | underfitting |
+| 10% / 15% / 75% | 128 128 | relu | heUniform | 300 | 0.01 | -1 | 100% / 89.4% / 90.4% | 100% / 91.8% / 91.1% | overfitting |
 
-Below shows examples of results obtained during training
 
-**Loss graph**
+## Graphs
+
+### Normal results:
+
+**Loss graph:**
 
 <img src="images/loss.png" alt="loss results" width="500"/>
 
-**Accuracy graph**
+**Accuracy graph:**
 
 <img src="images/accuracy.png" alt="accuracy results" width="500"/>
+
+### Underfitting:
+
+**Loss graph:**
+
+<img src="images/underfit_loss.png" alt="underfitting loss results" width="500"/>
+
+**Accuracy graph:**
+
+<img src="images/underfit_acc.png" alt="underfitting accuracy results" width="500"/>
+
+### Overfitting:
+
+**Loss graph:**
+
+<img src="images/overfit_loss.png" alt="overfitting loss results" width="500"/>
+
+**Accuracy graph:**
+
+<img src="images/overfit_acc.png" alt="overfitting accuracy results" width="500"/>
